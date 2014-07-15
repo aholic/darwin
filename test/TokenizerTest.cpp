@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+using namespace Darwin;
+
 TEST(TokenizerTest, SplitBySingleChar) {
     using namespace std;
     Tokenizer tokenizer;

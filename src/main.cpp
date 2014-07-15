@@ -3,24 +3,13 @@
 #include <fstream>
 #include <cstdlib>
 #include <cstdio>
+#include "darwin.hpp"
 #include "Tokenizer.hpp"
+#include "IndexBuilder.hpp"
 
-using namespace std;
+using namespace Darwin;
 
 int main() {
-    const int BUFF_SIZE = 2048;
-    FILE *dataFile = fopen("../data/harry.txt", "r");
-    char buff[BUFF_SIZE];
-    Tokenizer tokenizer;
-    vector<string> words;
-    unordered_map<string, int> wordCnt;
-
-    while (fscanf(dataFile, "%s", buff) != EOF) {
-        words = tokenizer.split(buff, " .,\"':?-");
-        for (const auto word : words) {
-            wordCnt[word] += 1;
-        }
-    }
-
+    IndexBuilder ib((Tokenizer()));
     return 0;
 }
