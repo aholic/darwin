@@ -5,6 +5,7 @@ namespace Darwin {
     using namespace std;
 
     using WordIdType = size_t;
+    using DocIdType = size_t;
 }
 
 #endif

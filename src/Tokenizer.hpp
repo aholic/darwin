@@ -7,13 +7,18 @@
 #include "darwin.hpp"
 
 namespace Darwin {
-    using WordMapType = unordered_map<string, WordIdType>;
     class Tokenizer {
+        using WordMapType = unordered_map<string, WordIdType>;
         public:
+            Tokenizer(size_t avgWordLength = 5) : _avgWordLength(avgWordLength) {}
+            Tokenizer(Tokenizer&& tokenizer) : 
+                _avgWordLength(tokenizer._avgWordLength) , 
+                _wordMap(move(tokenizer._wordMap)) {}
+            
             vector<string> split(const string& sentence, const string& delims = " ") const {
                 vector<string> words;
                 auto length = sentence.length();
-                words.reserve(length / avgWordLength);
+                words.reserve(length / _avgWordLength);
 
                 decltype(length) pos = 0, lastPos = 0;
                 while (pos != length) {
@@ -26,8 +31,6 @@ namespace Darwin {
                 return words;
             }
 
-            Tokenizer(size_t avgWordLength = 5) : avgWordLength(avgWordLength) {}
-            
             vector<WordIdType> tokenize(const string& sentence) {
                 auto words = split(sentence);
                 vector<WordIdType> ret;
@@ -38,6 +41,9 @@ namespace Darwin {
             }
 
         private:
+            size_t _avgWordLength = 5;
+            WordMapType _wordMap;
+
             WordIdType _update(const string& word) {
                 auto wordInfo = _wordMap.find(word);
                 if (wordInfo != _wordMap.end()) return wordInfo->second; 
@@ -46,8 +52,6 @@ namespace Darwin {
                 _wordMap[word] = wordId;
                 return wordId;
             }
-            size_t avgWordLength = 5;
-            WordMapType _wordMap;
     };
 }
 #endif
