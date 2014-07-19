@@ -2,6 +2,7 @@
 #define __TOKENIZER_HPP__
 
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include <algorithm>
 #include "darwin.hpp"
@@ -43,8 +44,8 @@ namespace Darwin {
                 return words;
             }
 
-            vector<WordIdType> tokenize(const string& sentence) {
-                auto words = split(sentence);
+            vector<WordIdType> tokenize(const string& sentence, const string& delims = " ") {
+                auto words = split(sentence, delims);
                 vector<WordIdType> ret;
                 for (const auto& word : words) {
                     ret.push_back(_update(word));

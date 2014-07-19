@@ -1,2 +1,4 @@
 data
 src/run
+*.o
+*.run
