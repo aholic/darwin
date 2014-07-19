@@ -8,7 +8,7 @@
 
 namespace Darwin {
     class IndexBuilder {
-        private:
+        public:
             struct InvertedIndexValueType {
                 DocIdType docId;
                 size_t offset;

@@ -8,18 +8,22 @@
 #include "darwin.hpp"
 
 namespace Darwin {
-    class Tokenizer {
-        private:
+
+    template <typename Validator>
+    class TokenizerT {
+        friend Validator;
+
+        public:
             using WordMapType = unordered_map<string, WordIdType>;
             size_t _avgWordLength = 5;
             WordMapType _wordMap;
         public:
-            Tokenizer(size_t avgWordLength = 5) :
+            TokenizerT(size_t avgWordLength = 5) :
                 _avgWordLength(avgWordLength) {}
-            Tokenizer(const Tokenizer& tokenizer) :
+            TokenizerT(const TokenizerT& tokenizer) :
                 _avgWordLength(tokenizer._avgWordLength),
                 _wordMap(tokenizer._wordMap) {}
-            Tokenizer(Tokenizer&& tokenizer) : 
+            TokenizerT(TokenizerT&& tokenizer) : 
                 _avgWordLength(tokenizer._avgWordLength), 
                 _wordMap(move(tokenizer._wordMap)) {}
             
@@ -63,5 +67,7 @@ namespace Darwin {
                 return wordId;
             }
     };
+
+    using Tokenizer = TokenizerT<int>;
 }
 #endif
