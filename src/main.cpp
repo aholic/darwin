@@ -11,7 +11,7 @@ using namespace Darwin;
 int main() {
     IndexBuilder ib((Tokenizer()));
     ib.build("../data/documents");
-    auto results = ib.search("dream");
+    auto results = ib.search("you");
     for (const auto& result : results) {
         cout << result << endl;
     }

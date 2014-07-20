@@ -27,9 +27,10 @@ namespace Darwin {
                 _avgWordLength(tokenizer._avgWordLength), 
                 _wordMap(move(tokenizer._wordMap)) {}
             
-            WordIdType getWordId(const string& word) {
-                auto wordId = _wordMap[word];
-                return wordId;
+            WordIdType getWordId(const string& word) const {
+                auto wordInfo = _wordMap.find(word);
+                if (wordInfo == _wordMap.end()) return 0;
+                return wordInfo->second;
             }
 
             vector<string> split(const string& sentence, const string& delims = " ") const {
@@ -63,8 +64,8 @@ namespace Darwin {
                 if (wordInfo != _wordMap.end()) return wordInfo->second; 
 
                 auto wordId = _wordMap.size();
-                _wordMap[word] = wordId;
-                return wordId;
+                _wordMap[word] = wordId + 1;
+                return (wordId+1);
             }
     };
 

@@ -34,6 +34,16 @@ class IndexBuilderValidator {
                }
            }
         }
+        void validateLineContent(const IndexBuilder4Test& indexBuilder, const pair<DocIdType, size_t>& pos, const string& lineContent) {
+            ASSERT_EQ(indexBuilder._getLineContent(pos.first, pos.second), lineContent);
+        }
+        void validateSearchResult(const IndexBuilder4Test& indexBuilder, const string& key, const SearchResultType& result) {
+            SearchResultType r = indexBuilder.search(key);
+            ASSERT_EQ(r.size(), result.size());
+            for (int i = 0; i< r.size(); i++) {
+                ASSERT_EQ(r[i], result[i]);
+            }
+        }
 };
 
 TEST(IndexBuilderTest, SetDataDirectory) {
@@ -79,4 +89,36 @@ TEST(IndexBuilderTest, BuildInvertedIndex) {
     };
 
     validator.validateInvertedIndex(indexBuilder, index);
+}
+
+TEST(IndexBuilderTest, GetLineContent) {
+    IndexBuilder4Test indexBuilder((Tokenizer()));
+    IndexBuilderValidator validator;
+
+    indexBuilder.build("data/documents");
+
+    vector<pair<DocIdType, size_t>> pos = {{0, 0}, {0, 11}, {1, 0}};
+    vector<string> expLineContent = {"shell code", "harry potter", "harry potter"};
+
+    for (int i = 0; i < pos.size(); i++) {
+        validator.validateLineContent(indexBuilder, pos[i], expLineContent[i]);
+    }
+}
+
+TEST(IndexBuilderTest, Search) {
+    IndexBuilder4Test indexBuilder((Tokenizer()));
+    IndexBuilderValidator validator;
+
+    indexBuilder.build("data/documents");
+    vector<string> keys = {"shell", "harry", "dream", "ruochen"};
+    vector<SearchResultType> expResults = {
+        {{0, "doc1", 0, "shell code"}},
+        {{1, "doc2", 0, "harry potter"}, {0, "doc1", 1, "harry potter"}},
+        {{3, "doc4", 0, "do you have a dream"}, {2, "doc3", 0, "i have a dream"}},
+        {{}}
+    };
+
+    for (int i = 0; i < keys.size(); i++) {
+        validator.validateSearchResult(indexBuilder, keys[i], expResults[i]);
+    }
 }

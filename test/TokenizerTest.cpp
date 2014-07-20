@@ -46,7 +46,7 @@ TEST(TokenizerTest, SplitByMutiChar) {
 TEST(TokenizerTest, TokenizeBySingleChar) {
     Tokenizer4Test tokenizer;
     string sentence = "I have a dream a very very very big dream Do you have a dream";
-    vector<WordIdType> expWordIds = {0, 1, 2, 3, 2, 4, 4, 4, 5, 3, 6, 7, 1, 2, 3};
+    vector<WordIdType> expWordIds = {1, 2, 3, 4, 3, 5, 5, 5, 6, 4, 7, 8, 2, 3, 4};
     auto wordIds = tokenizer.tokenize(sentence);
     for (int i = 0; i < expWordIds.size(); i++) {
         ASSERT_EQ(expWordIds[i], wordIds[i]);
@@ -54,8 +54,8 @@ TEST(TokenizerTest, TokenizeBySingleChar) {
 
     TokenizerValidator validator;
     Tokenizer4Test::WordMapType wordMap = {
-        {"I", 0}, {"have", 1}, {"a", 2}, {"dream", 3}, 
-        {"very", 4}, {"big", 5}, {"Do", 6}, {"you", 7}
+        {"I", 1}, {"have", 2}, {"a", 3}, {"dream", 4}, 
+        {"very", 5}, {"big", 6}, {"Do", 7}, {"you", 8}
     };
     validator.validateWordMap(tokenizer, wordMap);
 }
@@ -63,7 +63,7 @@ TEST(TokenizerTest, TokenizeBySingleChar) {
 TEST(TokenizerTest, TokenizeByMultiChar) {
     Tokenizer4Test tokenizer;
     string sentence = "I have a dream, a very very very big dream. Do you have a dream?";
-    vector<WordIdType> expWordIds = {0, 1, 2, 3, 2, 4, 4, 4, 5, 3, 6, 7, 1, 2, 3};
+    vector<WordIdType> expWordIds = {1, 2, 3, 4, 3, 5, 5, 5, 6, 4, 7, 8, 2, 3, 4};
     auto wordIds = tokenizer.tokenize(sentence, " ,.?");
     for (int i = 0; i < expWordIds.size(); i++) {
         ASSERT_EQ(expWordIds[i], wordIds[i]);
@@ -71,8 +71,8 @@ TEST(TokenizerTest, TokenizeByMultiChar) {
 
     TokenizerValidator validator;
     Tokenizer4Test::WordMapType wordMap = {
-        {"I", 0}, {"have", 1}, {"a", 2}, {"dream", 3}, 
-        {"very", 4}, {"big", 5}, {"Do", 6}, {"you", 7}
+        {"I", 1}, {"have", 2}, {"a", 3}, {"dream", 4}, 
+        {"very", 5}, {"big", 6}, {"Do", 7}, {"you", 8}
     };
     validator.validateWordMap(tokenizer, wordMap);
 }

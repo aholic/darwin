@@ -51,7 +51,7 @@ namespace Darwin {
             IndexBuilderT(const Tokenizer& tokenizer) : _tokenizer(tokenizer) {}
             IndexBuilderT(Tokenizer&& tokenizer) : _tokenizer(tokenizer) {}
 
-            WordIdType getWordId(const string& word) {
+            WordIdType getWordId(const string& word) const {
                 return _tokenizer.getWordId(word);
             }
 
@@ -63,13 +63,14 @@ namespace Darwin {
                 _index = _buildInvertedIndex(_documents); 
             }
 
-            SearchResultType search(const string& word) {
+            SearchResultType search(const string& word) const {
                 string lineContent;
-                WordIdType wordId = _tokenizer.getWordId(word);
-                auto docs = _index[wordId];
-
                 SearchResultType result;
-                for (const auto& doc : docs) {
+                WordIdType wordId = _tokenizer.getWordId(word);
+                auto docs = _index.find(wordId);
+                if (docs == _index.end()) return result;
+
+                for (const auto& doc : docs->second) {
                     lineContent = _getLineContent(doc.docId, doc.offset);
                     result.push_back(Result(doc.docId, _documents[doc.docId], doc.lineno, lineContent));
                 }
@@ -78,7 +79,7 @@ namespace Darwin {
             }
 
         private:
-            string _getLineContent(DocIdType docId, size_t offset) {
+            string _getLineContent(DocIdType docId, size_t offset) const {
                 auto docName = _dataDirectory+_documents[docId];
                 ifstream doc(docName);
                 doc.seekg(offset);

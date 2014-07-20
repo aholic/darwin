@@ -33,7 +33,7 @@ namespace Darwin {
 
     inline ostream& operator << (ostream& out, const Result& result) {
         out << result.docId << "(" <<result.docName << ")";
-        out << ": ";
+        out << ": in line ";
         out << result.lineno << ": " << result.lineContent;
         return out;
     }
