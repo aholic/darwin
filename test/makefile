@@ -32,8 +32,8 @@ $(GTEST_DIR)/lib/gtest_main.o :
 		   -pthread $(GTEST_DIR)/src/gtest_main.cc \
 		   -c -o $@
 
-.cpp.o :
-	$(CXX) $< $(INCLUDE_GTEST) $(INCLUDE_SRC) -c $(CXX_FLAGS)
+.cpp.o : 
+	$(CXX) $(INCLUDE_GTEST) $(INCLUDE_SRC) $^ -c $(CXX_FLAGS) 
 
 $(TEST_NAME) : $(TEST_CASES) gtest
 	$(CXX) $(INCLUDE_GTEST) $(TEST_CASES) $(GTEST_OBJ) -lpthread $(CXX_FLAGS) -o $@

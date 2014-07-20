@@ -22,12 +22,22 @@ namespace Darwin {
         Result (Result&& result) :
             docId(result.docId), docName(move(result.docName)),
             lineno(result.lineno), lineContent(move(result.lineContent)) {}
+        bool operator == (const Result& rhs) const {
+            if (rhs.docId != docId) return false;
+            if (rhs.docName != docName) return false;
+            if (rhs.lineno != lineno) return false;
+            if (rhs.lineContent != lineContent) return false;
+            return true;
+        }
     };
 
-    ostream& operator << (ostream& stream, Result result) {
-        stream << result.docId << "(" << result.docName << "): " << result.lineno << ": " << result.lineContent;
-        return stream;
+    inline ostream& operator << (ostream& out, const Result& result) {
+        out << result.docId << "(" <<result.docName << ")";
+        out << ": ";
+        out << result.lineno << ": " << result.lineContent;
+        return out;
     }
+
     using SearchResultType = vector<Result>;
 }
 
