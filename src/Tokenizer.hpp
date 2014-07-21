@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <fstream>
 #include <algorithm>
 #include "darwin.hpp"
 
@@ -26,6 +27,9 @@ namespace Darwin {
             TokenizerT(TokenizerT&& tokenizer) : 
                 _avgWordLength(tokenizer._avgWordLength), 
                 _wordMap(move(tokenizer._wordMap)) {}
+            explicit TokenizerT(const string& backupFileName) {
+                _deserialize(backupFileName);
+            }
             
             WordIdType getWordId(const string& word) const {
                 auto wordInfo = _wordMap.find(word);
@@ -58,13 +62,42 @@ namespace Darwin {
                 return ret;
             }
 
+            void serialize(const string& dumpFileName) const {
+                ofstream fout(dumpFileName, ios_base::out | ios_base::binary);
+                fout.write((reinterpret_cast<const char*>(&_avgWordLength)), sizeof(_avgWordLength));
+                for (const auto& w : _wordMap) {
+                    size_t wordLen = w.first.length();
+                    size_t wordId = w.second;
+                    fout.write((reinterpret_cast<const char*>(&wordLen)), sizeof(wordLen));
+                    fout.write(w.first.c_str(), wordLen);
+                    fout.write((reinterpret_cast<const char*>(&wordId)), sizeof(wordId));
+                }
+            }
         private:
+            void _deserialize(const string& backupFileName) {
+                ifstream fin(backupFileName, ios_base::in | ios_base::binary);
+                fin.read((reinterpret_cast<char*>(&_avgWordLength)), sizeof(_avgWordLength));
+
+                _wordMap.clear();
+
+                char buff[256];
+                size_t wordLen;
+                size_t wordId;
+                while (fin) {
+                    fin.read((reinterpret_cast<char*>(&wordLen)), sizeof(wordLen));
+                    fin.read(buff, wordLen);
+                    buff[wordLen] = '\0';
+                    fin.read((reinterpret_cast<char*>(&wordId)), sizeof(wordId));
+                    _wordMap.insert(make_pair(string(buff), wordId));
+                }
+            }
+
             WordIdType _update(const string& word) {
                 auto wordInfo = _wordMap.find(word);
                 if (wordInfo != _wordMap.end()) return wordInfo->second; 
 
                 auto wordId = _wordMap.size();
-                _wordMap[word] = wordId + 1;
+                _wordMap.insert(make_pair(word, wordId+1));
                 return (wordId+1);
             }
     };

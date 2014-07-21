@@ -14,6 +14,7 @@ namespace Darwin {
         string docName;
         size_t lineno;
         string lineContent;
+
         Result (DocIdType docId, const string& docName, size_t lineno, const string& lineContent) :
             docId(docId), docName(docName), lineno(lineno), lineContent(lineContent) {}
         Result (const Result& result) :
@@ -32,9 +33,9 @@ namespace Darwin {
     };
 
     inline ostream& operator << (ostream& out, const Result& result) {
-        out << result.docId << "(" <<result.docName << ")";
-        out << ": in line ";
-        out << result.lineno << ": " << result.lineContent;
+        out << result.docName << "(";
+        out << "line ";
+        out << result.lineno << "): " << result.lineContent;
         return out;
     }
 

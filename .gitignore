@@ -2,3 +2,4 @@ data
 src/run
 *.o
 *.run
+dump

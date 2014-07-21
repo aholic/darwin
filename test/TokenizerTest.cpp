@@ -19,6 +19,15 @@ class TokenizerValidator {
                 ASSERT_EQ(wordInfo->second, w.second); 
             }
         }
+
+        void validateAvgWordLength(const Tokenizer4Test& tokenizer, size_t avgWordLength) {
+            ASSERT_EQ(tokenizer._avgWordLength, avgWordLength);
+        }
+
+        void validateEqual(const Tokenizer4Test& t1, const Tokenizer4Test& t2) {
+            validateAvgWordLength(t1, t2._avgWordLength);
+            validateWordMap(t1, t2._wordMap);
+        }
 };
 
 TEST(TokenizerTest, SplitBySingleChar) {
@@ -75,4 +84,23 @@ TEST(TokenizerTest, TokenizeByMultiChar) {
         {"very", 5}, {"big", 6}, {"Do", 7}, {"you", 8}
     };
     validator.validateWordMap(tokenizer, wordMap);
+}
+
+TEST(TokenizerTest, Serialization) {
+    vector<string> sentences = {
+        "I have a dream, a very very very big dream. Do you have a dream?",
+        "hello word, i love all the world!",
+        "my name is xu ruochen, what is your name?"
+    };
+
+    for (int i = 0; i < sentences.size(); i++ ) {
+        Tokenizer4Test tokenizer;
+        tokenizer.tokenize(sentences[i], " ,.!?");
+
+        tokenizer.serialize("dump/tokenizer_dump");
+        Tokenizer4Test backupTokenizer("dump/tokenizer_dump");
+
+        TokenizerValidator validator;
+        validator.validateEqual(tokenizer, backupTokenizer);
+    }
 }
