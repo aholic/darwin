@@ -19,7 +19,7 @@ namespace Darwin {
             size_t _avgWordLength = 5;
             WordMapType _wordMap;
         public:
-            TokenizerT(size_t avgWordLength = 5) :
+            explicit TokenizerT(size_t avgWordLength = 5) :
                 _avgWordLength(avgWordLength) {}
             TokenizerT(const TokenizerT& tokenizer) :
                 _avgWordLength(tokenizer._avgWordLength),
@@ -29,6 +29,9 @@ namespace Darwin {
                 _wordMap(move(tokenizer._wordMap)) {}
             explicit TokenizerT(const string& backupFileName) {
                 _deserialize(backupFileName);
+            }
+            explicit TokenizerT(ifstream& fin) {
+                _deserialize(fin);
             }
             
             WordIdType getWordId(const string& word) const {
@@ -64,6 +67,11 @@ namespace Darwin {
 
             void serialize(const string& dumpFileName) const {
                 ofstream fout(dumpFileName, ios_base::out | ios_base::binary);
+                serialize(fout);
+                fout.close();
+            }
+
+            void serialize(ofstream& fout) const {
                 fout.write((reinterpret_cast<const char*>(&_avgWordLength)), sizeof(_avgWordLength));
                 for (const auto& w : _wordMap) {
                     size_t wordLen = w.first.length();
@@ -74,10 +82,8 @@ namespace Darwin {
                 }
             }
         private:
-            void _deserialize(const string& backupFileName) {
-                ifstream fin(backupFileName, ios_base::in | ios_base::binary);
+            void _deserialize(ifstream& fin) {
                 fin.read((reinterpret_cast<char*>(&_avgWordLength)), sizeof(_avgWordLength));
-
                 _wordMap.clear();
 
                 char buff[256];
@@ -90,6 +96,11 @@ namespace Darwin {
                     fin.read((reinterpret_cast<char*>(&wordId)), sizeof(wordId));
                     _wordMap.insert(make_pair(string(buff), wordId));
                 }
+            }
+            void _deserialize(const string& backupFileName) {
+                ifstream fin(backupFileName, ios_base::in | ios_base::binary);
+                _deserialize(fin);
+                fin.close();
             }
 
             WordIdType _update(const string& word) {

@@ -48,8 +48,15 @@ namespace Darwin {
             string _dataDirectory;
 
         public:
-            IndexBuilderT(const Tokenizer& tokenizer) : _tokenizer(tokenizer) {}
-            IndexBuilderT(Tokenizer&& tokenizer) : _tokenizer(tokenizer) {}
+            explicit IndexBuilderT(const Tokenizer& tokenizer) : _tokenizer(tokenizer) {}
+            explicit IndexBuilderT(Tokenizer&& tokenizer) : _tokenizer(tokenizer) {}
+
+            void serialize(ofstream& fout) {
+                _tokenizer.serialize(fout);
+                size_t dataDirectoryLen = _dataDirectory.length();
+                fout.write((reinterpret_cast<const char*>(&dataDirectoryLen)), sizeof(dataDirectoryLen));
+                fout.write(_dataDirectory.c_str(), dataDirectoryLen);
+            }
 
             WordIdType getWordId(const string& word) const {
                 return _tokenizer.getWordId(word);
