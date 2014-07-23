@@ -12,8 +12,10 @@ all : $(TEST_NAME)
 
 clean :
 	rm *.o $(TEST_NAME) -f
+	rm dump/* -f
 
 clean-all :
+	rm dump/* -f
 	rm *.o $(TEST_NAME) $(GTEST_DIR)/lib/* -f
 	rm $(GTEST_DIR)/lib -rf
 

@@ -17,10 +17,7 @@ class IndexBuilderValidator {
             ASSERT_EQ(indexBuilder._dataDirectory, dataDirectory);
         }
         void validateDocList(const IndexBuilder4Test& indexBuilder, const IndexBuilder4Test::DocumentListType& docList) {
-            ASSERT_EQ(indexBuilder._documents.size(), docList.size());
-            for (int i = 0; i < docList.size(); i++) {
-                ASSERT_EQ(indexBuilder._documents[i], docList[i]);
-            }
+            ASSERT_EQ(indexBuilder._documents, docList);
         }
         void validateInvertedIndex(const IndexBuilder4Test& indexBuilder, const IndexBuilder4Test::InvertedIndexType& index) {
            ASSERT_EQ(indexBuilder._index.size(), index.size()); 
@@ -39,10 +36,7 @@ class IndexBuilderValidator {
         }
         void validateSearchResult(const IndexBuilder4Test& indexBuilder, const string& key, const SearchResultType& result) {
             SearchResultType r = indexBuilder.search(key);
-            ASSERT_EQ(r.size(), result.size());
-            for (int i = 0; i< r.size(); i++) {
-                ASSERT_EQ(r[i], result[i]);
-            }
+            ASSERT_EQ(r, result);
         }
 };
 
