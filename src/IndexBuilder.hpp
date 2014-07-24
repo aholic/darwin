@@ -5,12 +5,24 @@
 #include <fstream>
 #include "darwin.hpp"
 #include "Tokenizer.hpp"
+#include "Serializer.hpp"
 #include <unordered_set>
 
 namespace Darwin {
     template <typename Validator>
+    class IndexBuilderT;
+
+    template <typename Validator>
+    inline bool operator == (const IndexBuilderT<Validator>& i1, const IndexBuilderT<Validator>& i2);
+
+    template <typename Validator>
+    inline bool operator != (const IndexBuilderT<Validator>& i1, const IndexBuilderT<Validator>& i2);
+
+    template <typename Validator>
     class IndexBuilderT {
         friend Validator;
+        friend bool operator == <> (const IndexBuilderT& i1, const IndexBuilderT& i2);
+        friend bool operator != <> (const IndexBuilderT& i1, const IndexBuilderT& i2);
 
         public:
             struct InvertedIndexValueType {
@@ -29,7 +41,7 @@ namespace Darwin {
                 }
             };
 
-            struct hashFunc {
+            struct HashFunc {
                 size_t operator() (const InvertedIndexValueType &val) const {
                     std::hash<size_t> hasher;
                     size_t ret = val.docId;
@@ -38,7 +50,8 @@ namespace Darwin {
                     return ret;
                 }
             };
-            using InvertedIndexType = unordered_map<WordIdType, unordered_set<InvertedIndexValueType, hashFunc>>;
+
+            using InvertedIndexType = unordered_map<WordIdType, unordered_set<InvertedIndexValueType, HashFunc>>;
             using DocumentListType = vector<string>;
 
         private:
@@ -50,12 +63,23 @@ namespace Darwin {
         public:
             explicit IndexBuilderT(const Tokenizer& tokenizer) : _tokenizer(tokenizer) {}
             explicit IndexBuilderT(Tokenizer&& tokenizer) : _tokenizer(tokenizer) {}
-
-            void serialize(ofstream& fout) {
-                _tokenizer.serialize(fout);
-                size_t dataDirectoryLen = _dataDirectory.length();
-                fout.write((reinterpret_cast<const char*>(&dataDirectoryLen)), sizeof(dataDirectoryLen));
-                fout.write(_dataDirectory.c_str(), dataDirectoryLen);
+            explicit IndexBuilderT(const string& backupFileName) {
+                _deserialize(backupFileName);
+            }
+            explicit IndexBuilderT(ifstream& fin) {
+                _deserialize(fin);
+            }
+            IndexBuilderT& operator = (IndexBuilderT&& rhs) {
+                _documents = move(rhs._documents);
+                _tokenizer = move(rhs._tokenizer);
+                _index = move(rhs._index);
+                _dataDirectory = move(rhs._dataDirectory);
+            }
+            IndexBuilderT& operator = (const IndexBuilderT& rhs) {
+                _documents = rhs._documents;
+                _tokenizer = rhs._tokenizer;
+                _index = rhs._index;
+                _dataDirectory = rhs._dataDirectory;
             }
 
             WordIdType getWordId(const string& word) const {
@@ -85,7 +109,37 @@ namespace Darwin {
                 return result;
             }
 
+            void serialize(const string& dumpFileName) const {
+                ofstream fout(dumpFileName, ios_base::out | ios_base::binary);
+                serialize(fout);
+                fout.close();
+            }
+
+            void serialize(ofstream& fout) const {
+                _tokenizer.serialize(fout);
+                Serializer serializer;
+                serializer.serialize(fout, _documents);
+                serializer.serialize(fout, _index);
+                cout << "_index serialize end" << endl;
+                serializer.serialize(fout, _dataDirectory);
+                cout << "_dataDirectory serialize end" << endl;
+            }
+
         private:
+            void _deserialize(ifstream& fin) {
+                _tokenizer = Tokenizer(fin);
+                Serializer serializer;
+                serializer.deserialize(fin, _documents);
+                serializer.deserialize(fin, _index);
+                serializer.deserialize(fin, _dataDirectory);
+            }
+
+            void _deserialize(const string& backupFileName) {
+                ifstream fin(backupFileName, ios_base::in | ios_base::binary);
+                _deserialize(fin);
+                fin.close();
+            }
+
             string _getLineContent(DocIdType docId, size_t offset) const {
                 auto docName = _dataDirectory+_documents[docId];
                 ifstream doc(docName);
@@ -136,6 +190,25 @@ namespace Darwin {
                 return docList;
             }
     };
+
+    template<typename Validator>
+    inline bool operator == (const IndexBuilderT<Validator>& lhs, const IndexBuilderT<Validator>& rhs) {
+        if (lhs._tokenizer != rhs._tokenizer) return false;
+        if (lhs._documents != rhs._documents) return false;
+        if (lhs._index != rhs._index) return false;
+        if (lhs._dataDirectory != rhs._dataDirectory) return false;
+        return true;
+    }
+
+    template<typename Validator>
+    inline bool operator != (const IndexBuilderT<Validator>& lhs, const IndexBuilderT<Validator>& rhs) {
+        if (lhs._tokenizer != rhs._tokenizer) return true;
+        if (lhs._documents != rhs._documents) return true;
+        if (lhs._index != rhs._index) return true;
+        if (lhs._dataDirectory != rhs._dataDirectory) return true;
+        return false;
+    }
+
     using IndexBuilder = IndexBuilderT<int>;
 }
 

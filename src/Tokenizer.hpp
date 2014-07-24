@@ -7,12 +7,24 @@
 #include <fstream>
 #include <algorithm>
 #include "darwin.hpp"
+#include "Serializer.hpp"
 
 namespace Darwin {
 
     template <typename Validator>
+    class TokenizerT;
+
+    template <typename Validator>
+    bool operator == (const TokenizerT<Validator>& t1, const TokenizerT<Validator>& t2);
+
+    template <typename Validator>
+    bool operator != (const TokenizerT<Validator>& t1, const TokenizerT<Validator>& t2);
+
+    template <typename Validator>
     class TokenizerT {
         friend Validator;
+        friend bool operator == <> (const TokenizerT& t1, const TokenizerT& t2);
+        friend bool operator != <> (const TokenizerT& t1, const TokenizerT& t2);
 
         public:
             using WordMapType = unordered_map<string, WordIdType>;
@@ -33,7 +45,17 @@ namespace Darwin {
             explicit TokenizerT(ifstream& fin) {
                 _deserialize(fin);
             }
-            
+            TokenizerT& operator = (TokenizerT&& rhs) {
+                _wordMap = move(rhs._wordMap);
+                _avgWordLength = move(rhs._avgWordLength);
+                return *this;
+            }
+            TokenizerT& operator = (const TokenizerT& rhs) {
+                _wordMap = rhs._wordMap;
+                _avgWordLength = rhs._avgWordLength;
+                return *this;
+            }
+
             WordIdType getWordId(const string& word) const {
                 auto wordInfo = _wordMap.find(word);
                 if (wordInfo == _wordMap.end()) return 0;
@@ -72,30 +94,15 @@ namespace Darwin {
             }
 
             void serialize(ofstream& fout) const {
-                fout.write((reinterpret_cast<const char*>(&_avgWordLength)), sizeof(_avgWordLength));
-                for (const auto& w : _wordMap) {
-                    size_t wordLen = w.first.length();
-                    size_t wordId = w.second;
-                    fout.write((reinterpret_cast<const char*>(&wordLen)), sizeof(wordLen));
-                    fout.write(w.first.c_str(), wordLen);
-                    fout.write((reinterpret_cast<const char*>(&wordId)), sizeof(wordId));
-                }
+                Serializer serializer;
+                serializer.serialize(fout, _avgWordLength);
+                serializer.serialize(fout, _wordMap);
             }
         private:
             void _deserialize(ifstream& fin) {
-                fin.read((reinterpret_cast<char*>(&_avgWordLength)), sizeof(_avgWordLength));
-                _wordMap.clear();
-
-                char buff[256];
-                size_t wordLen;
-                size_t wordId;
-                while (fin) {
-                    fin.read((reinterpret_cast<char*>(&wordLen)), sizeof(wordLen));
-                    fin.read(buff, wordLen);
-                    buff[wordLen] = '\0';
-                    fin.read((reinterpret_cast<char*>(&wordId)), sizeof(wordId));
-                    _wordMap.insert(make_pair(string(buff), wordId));
-                }
+                Serializer serializer;
+                serializer.deserialize(fin, _avgWordLength);
+                serializer.deserialize(fin, _wordMap);
             }
             void _deserialize(const string& backupFileName) {
                 ifstream fin(backupFileName, ios_base::in | ios_base::binary);
@@ -111,7 +118,18 @@ namespace Darwin {
                 _wordMap.insert(make_pair(word, wordId+1));
                 return (wordId+1);
             }
+            
     };
+
+    template<typename Validator>
+    inline bool operator == (const TokenizerT<Validator>& lhs, const TokenizerT<Validator>& rhs) {
+        return (lhs._avgWordLength == rhs._avgWordLength && lhs._wordMap == rhs._wordMap);
+    }
+
+    template<typename Validator>
+    inline bool operator != (const TokenizerT<Validator>& lhs, const TokenizerT<Validator>& rhs) {
+        return (lhs._avgWordLength != rhs._avgWordLength || lhs._wordMap != rhs._wordMap);
+    }
 
     using Tokenizer = TokenizerT<int>;
 }

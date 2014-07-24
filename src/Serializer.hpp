@@ -3,12 +3,24 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <fstream>
 #include <algorithm>
+#include <exception>
 #include "darwin.hpp"
 
 namespace Darwin {
+
+    class SerializationOfUnknownType : public exception {
+        private:
+            string _name;
+        public:
+            SerializationOfUnknownType(const string& name) : _name(name) {}
+            virtual const char* what() const noexcept {
+                return _name.c_str();
+            }
+    };
 
     template <typename Validator>
     class SerializerT {
@@ -21,14 +33,14 @@ namespace Darwin {
             template<typename T>
             void _confirmBasicType(const T& data) const {
                 if (find(_basicTypes.begin(), _basicTypes.end(), typeid(data).hash_code()) == _basicTypes.end()) {
-                    throw "serialization of non-basic type";
+                    throw SerializationOfUnknownType(string("serialization of non-basic type: ") + typeid(data).name());
                 }
             }
 
             template<typename T>
             void _confirmBasicTypePtr(const T& data) const {
                 if (find(_basicTypePtrs.begin(), _basicTypePtrs.end(), typeid(data).hash_code()) == _basicTypePtrs.end()) {
-                    throw "serialization of non-basic type ptr";
+                    throw SerializationOfUnknownType(string("serialization of non-basic type ptr: ") + typeid(data).name());
                 }
             }
 
@@ -79,17 +91,33 @@ namespace Darwin {
                 fin.close();
             }
 
+            template<typename T>
+            const SerializerT& deserialize(ifstream& fin, T& data) const {
+                _confirmBasicType(data);
+                fin.read((reinterpret_cast<char*>(&data)), sizeof(data));
+                return *this;
+            }
+
+            template<typename T>
+            const SerializerT& deserialize(ifstream& fin, T* data, size_t len) const {
+                _confirmBasicTypePtr(data);
+                fin.read((reinterpret_cast<char*>(data)), len * sizeof(T));
+                return *this;
+            }
+
             const SerializerT& deserialize(ifstream& fin, string& data) const {
                 size_t len;
                 deserialize(fin, len);
 
                 data.clear();
                 data.reserve(len);
-                char* str = new char [len+1];
-                fin.read(str, len);
+
+                char *str = new char [len+1];
+                deserialize(fin, str, len);
+                str[len] = '\0';
+
                 data.append(str);
                 delete [] str;
-
                 return *this;
             }
 
@@ -109,6 +137,21 @@ namespace Darwin {
                 return *this;
             }
 
+            template<typename T>
+            const SerializerT& deserialize(ifstream& fin, unordered_set<T>& data) const {
+                size_t size;
+                deserialize(fin, size);
+
+                data.clear();
+                data.reserve(size);
+                T elem;
+                for (int i = 0; i < size; i++) {
+                    deserialize(fin, elem);
+                    data.insert(elem);
+                }
+
+                return *this;
+            }
 
             template<typename KeyType, typename MappedType>
             const SerializerT& deserialize(ifstream& fin, unordered_map<KeyType, MappedType>& data) const {
@@ -127,12 +170,6 @@ namespace Darwin {
                 return *this;
             }
 
-            template<typename T>
-            const SerializerT& deserialize(ifstream& fin, T& data) const {
-                _confirmBasicType(data);
-                fin.read((reinterpret_cast<char*>(&data)), sizeof(data));
-                return *this;
-            }
 
             template<typename T>
             void serialize(const string& dumpFileName, const T& data) const {
@@ -157,6 +194,15 @@ namespace Darwin {
                 return *this;
             }
 
+            template<typename T>
+            const SerializerT& serialize(ofstream& fout, const unordered_set<T>& data) {
+                serialize(fout, data.size());
+                for (const auto& elem : data) {
+                    serialize(fout, elem);
+                }
+                return *this;
+            }
+
             template<typename KeyType, typename MappedType> 
             const SerializerT& serialize(ofstream& fout, const unordered_map<KeyType, MappedType>& data) const {
                 serialize(fout, data.size());
@@ -168,14 +214,14 @@ namespace Darwin {
             }
 
             const SerializerT& serialize(ofstream& fout, const string& data) const {
+                serialize(fout, data.length());
                 return serialize(fout, data.c_str(), data.length());
             }
 
             template<typename T>
             const SerializerT& serialize(ofstream& fout, const T* data, size_t len) const {
                 _confirmBasicTypePtr(data);
-                serialize(fout, len);
-                fout.write((reinterpret_cast<const char*>(data)), len);
+                fout.write((reinterpret_cast<const char*>(data)), len * sizeof(T));
                 return *this;
             }
 

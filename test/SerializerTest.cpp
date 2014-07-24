@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include "CompareOperator.hpp"
 
 using namespace Darwin;
@@ -66,12 +67,14 @@ TEST(SerializerTest, SerializationOfStl) {
         {"Guangzhou", {"020", "South China", "guangzhou@cstdlib.com"}},
         {"Shanghai", {"021", "Southeast China", "shanghai@cstdlib.com"}}
     };
+    unordered_set<string> ss = {"hello", "my", "love"};
 
     serializer.serialize(fout, s);
     serializer.serialize(fout, vi);
     serializer.serialize(fout, vs);
     serializer.serialize(fout, mis);
     serializer.serialize(fout, msvs);
+    serializer.serialize(fout, ss);
     fout.close();
 
     ifstream fin("dump/dump_stl", ios_base::in | ios_base::binary);
@@ -80,12 +83,14 @@ TEST(SerializerTest, SerializationOfStl) {
     vector<string> bvs;
     unordered_map<int, string> bmis;
     unordered_map<string, vector<string>> bmsvs;
+    unordered_set<string> bss;
 
     serializer.deserialize(fin, bs);
     serializer.deserialize(fin, bvi);
     serializer.deserialize(fin, bvs);
     serializer.deserialize(fin, bmis);
     serializer.deserialize(fin, bmsvs);
+    serializer.deserialize(fin, bss);
     fin.close();
 
     ASSERT_EQ(s, bs);
@@ -93,4 +98,5 @@ TEST(SerializerTest, SerializationOfStl) {
     ASSERT_EQ(vs, bvs);
     ASSERT_EQ(mis, bmis);
     ASSERT_EQ(msvs, bmsvs);
+    ASSERT_EQ(ss, bss);
 }

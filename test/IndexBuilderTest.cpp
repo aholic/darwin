@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "darwin.hpp"
 #include "IndexBuilder.hpp"
+#include "CompareOperator.hpp"
 #include <string>
 #include <vector>
 #include <unordered_set>
@@ -115,4 +116,15 @@ TEST(IndexBuilderTest, Search) {
     for (int i = 0; i < keys.size(); i++) {
         validator.validateSearchResult(indexBuilder, keys[i], expResults[i]);
     }
+}
+
+TEST(IndexBuilderTest, Serialization) {
+    IndexBuilder4Test indexBuilder((Tokenizer()));
+    indexBuilder.build("data/documents");
+
+    indexBuilder.serialize("dump/index_builder_dump");
+    cout << "serialize end" << endl;
+    IndexBuilder4Test backupIndexBuilder("dump/index_builder_dump");
+    cout << "deserialize end" << endl;
+    ASSERT_EQ(indexBuilder, backupIndexBuilder);
 }

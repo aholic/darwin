@@ -19,11 +19,6 @@ class TokenizerValidator {
         void validateAvgWordLength(const Tokenizer4Test& tokenizer, size_t avgWordLength) {
             ASSERT_EQ(tokenizer._avgWordLength, avgWordLength);
         }
-
-        void validateEqual(const Tokenizer4Test& t1, const Tokenizer4Test& t2) {
-            validateAvgWordLength(t1, t2._avgWordLength);
-            validateWordMap(t1, t2._wordMap);
-        }
 };
 
 TEST(TokenizerTest, SplitBySingleChar) {
@@ -86,7 +81,6 @@ TEST(TokenizerTest, Serialization) {
         tokenizer.serialize("dump/tokenizer_dump");
         Tokenizer4Test backupTokenizer("dump/tokenizer_dump");
 
-        TokenizerValidator validator;
-        validator.validateEqual(tokenizer, backupTokenizer);
+        ASSERT_EQ(tokenizer, backupTokenizer);
     }
 }
