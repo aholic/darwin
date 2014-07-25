@@ -22,6 +22,38 @@ namespace Darwin {
             }
     };
 
+    template <typename T>
+    struct SerializeFunc {
+        void operator () (ofstream& fout, const T& data) const {
+            SerializeFunc<size_t>(fout, data.size());
+        }
+    };
+
+    template <>
+    struct SerializeFunc<size_t> {
+        void operator () (ofstream& fout, size_t data) const {
+            fout.write((reinterpret_cast<const char*>(&data)), sizeof(data));
+        }
+    };
+
+    template <typename T>
+    struct SerializeFunc<T*> {
+        void operator () (ofstream& fout, const T* data) const {
+            throw SerializationOfUnknownType(string("Unknown type to serialize: " + typeid(data).name()));
+        }
+    };
+
+    template <>
+    struct SerializeFunc<char*> {
+        void operator () (ofstream& fout, const char* data) const {
+            fout.write((reinterpret_cast<const char*>(&data)), sizeof(data));
+        }
+    };
+
+    template <>
+    struct SerializeFunc<string> {
+    }
+
     template <typename Validator>
     class SerializerT {
         friend Validator;
@@ -32,16 +64,22 @@ namespace Darwin {
 
             template<typename T>
             void _confirmBasicType(const T& data) const {
-                if (find(_basicTypes.begin(), _basicTypes.end(), typeid(data).hash_code()) == _basicTypes.end()) {
+                if (!_typeBelong(data, _basicTypes)) {
                     throw SerializationOfUnknownType(string("serialization of non-basic type: ") + typeid(data).name());
                 }
             }
 
             template<typename T>
             void _confirmBasicTypePtr(const T& data) const {
-                if (find(_basicTypePtrs.begin(), _basicTypePtrs.end(), typeid(data).hash_code()) == _basicTypePtrs.end()) {
+                if (!_typeBelong(data, _basicTypePtrs))
                     throw SerializationOfUnknownType(string("serialization of non-basic type ptr: ") + typeid(data).name());
                 }
+            }
+
+            template<typename T>
+            bool _typeBelong(const T& data, vector<size_t>& types) {
+                if (find(types.begin(), types.end(), typeid(data).hash_code()) == types.end()) return false;
+                return true;
             }
 
         public:
@@ -171,58 +209,40 @@ namespace Darwin {
             }
 
 
+/////////////////////////////////////////////////////////////////////////////////////////////////
+        public:
             template<typename T>
-            void serialize(const string& dumpFileName, const T& data) const {
-                ofstream fout(dumpFileName, ios_base::out | ios_base::binary);
-                serialize(fout, data);
-                fout.close();
+            void serialize(ofstream&& fout, const T&& data) const {
+                if (_typeBelong(data, _basicTypes)) {
+                    serializeBasicType(forward<ofstream>(fout), forward<T>(data));
+                } else {
+                    serialize(fout, data.size());
+                    serialize(fout, data.begin(), data.end());
+                }
             }
 
-            template<typename T>
-            const SerializerT& serialize(ofstream& fout, const T& data) const {
-                _confirmBasicType(data);
+            template <typename T>
+            void serializeBasicType(ofstream& fout, const T& data) {
                 fout.write((reinterpret_cast<const char*>(&data)), sizeof(data));
-                return *this;
             }
 
-            template<typename T>
-            const SerializerT& serialize(ofstream& fout, const vector<T>& data) const {
-                serialize(fout, data.size());
-                for (const auto& elem : data) {
-                    serialize(fout, elem);
-                }
-                return *this;
-            }
-
-            template<typename T>
-            const SerializerT& serialize(ofstream& fout, const unordered_set<T>& data) {
-                serialize(fout, data.size());
-                for (const auto& elem : data) {
-                    serialize(fout, elem);
-                }
-                return *this;
-            }
-
-            template<typename KeyType, typename MappedType> 
-            const SerializerT& serialize(ofstream& fout, const unordered_map<KeyType, MappedType>& data) const {
-                serialize(fout, data.size());
-                for (const auto& elem : data) {
-                    serialize(fout, elem.first);
-                    serialize(fout, elem.second);
-                }
-                return *this;
-            }
-
-            const SerializerT& serialize(ofstream& fout, const string& data) const {
+            void serialize(ofstream& fout, const string& data) const {
                 serialize(fout, data.length());
-                return serialize(fout, data.c_str(), data.length());
+                serialize(fout, data.c_str(), data.length());
             }
 
             template<typename T>
-            const SerializerT& serialize(ofstream& fout, const T* data, size_t len) const {
+            void serialize(ofstream& fout, const T* data, size_t len) const {
                 _confirmBasicTypePtr(data);
                 fout.write((reinterpret_cast<const char*>(data)), len * sizeof(T));
-                return *this;
+            }
+
+            template<typename InputIterator, typename T>
+            void serialize(ofstream& fout, InputIterator first, InputIterator last) const {
+                while (first != last) {
+                    serialize(fout, *first);
+                    ++first;
+                }
             }
 
     };
