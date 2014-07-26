@@ -17,17 +17,16 @@ namespace Darwin {
             string _name;
         public:
             SerializationOfUnknownType(const string& name) : _name(name) {}
-            virtual const char* what() const noexcept {
+            virtual const char* what() const noexcept override {
                 return _name.c_str();
             }
     };
 
     template <typename T>
-    struct SerializeFunc {
-        void operator () (ofstream& fout, const T& data) const {
-            SerializeFunc<size_t>(fout, data.size());
-        }
-    };
+    struct SerializeFunc;
+
+    template <typename T>
+    struct DeserializeFunc;
 
     template <>
     struct SerializeFunc<size_t> {
@@ -36,215 +35,120 @@ namespace Darwin {
         }
     };
 
+    template <>
+    struct SerializeFunc<const size_t> {
+        void operator () (ofstream& fout, size_t data) const {
+            fout.write((reinterpret_cast<const char*>(&data)), sizeof(data));
+        }
+    };
+
     template <typename T>
     struct SerializeFunc<T*> {
-        void operator () (ofstream& fout, const T* data) const {
-            throw SerializationOfUnknownType(string("Unknown type to serialize: " + typeid(data).name()));
+        void operator () (ofstream& fout, const T* data, size_t length) const {
+            throw SerializationOfUnknownType(string("Unknown type to serialize: ") + typeid(data).name());
         }
     };
 
     template <>
     struct SerializeFunc<char*> {
-        void operator () (ofstream& fout, const char* data) const {
-            fout.write((reinterpret_cast<const char*>(&data)), sizeof(data));
+        void operator () (ofstream& fout, const char* data, size_t length) const {
+            fout.write((reinterpret_cast<const char*>(&data)), sizeof(const char) * length);
+        }
+    };
+
+    template <>
+    struct SerializeFunc<const string> {
+        void operator () (ofstream& fout, const string& data) const {
+            SerializeFunc<typename string::size_type>()(fout, data.length());
+            SerializeFunc<typename string::pointer>()(fout, data.c_str(), data.length());
+        }
+    };
+
+    template <>
+    struct DeserializeFunc<string> {
+        void operator () (ifstream& fin, string& data) const {
+            typename string::size_type size;
+            DeserializeFunc<typename string::size_type>()(fin, size);
+
+            string::pointer tmp = new string::value_type [size+1];
+            SerializeFunc<typename string::pointer>()(fout, tmp, size);
+            tmp[size] = '\0';
+
+            data.clear();
+            data += tmp;
+
+            delete [] tmp;
         }
     };
 
     template <>
     struct SerializeFunc<string> {
-    }
+        void operator () (ofstream& fout, const string& data) const {
+            SerializeFunc<typename string::size_type>()(fout, data.length());
+            SerializeFunc<typename string::pointer>()(fout, data.c_str(), data.length());
+        }
+    };
+
+    template <typename FirstType, typename SecondType>
+    struct DeserializeFunc<pair<FirstType, SecondType>> {
+        void operator () (ifstream& fin, pair<FirstType, SecondType>& data) const {
+            DeserializeFunc<FirstType>()(fin, data.first);
+            DeserializeFunc<SecondType>()(fin, data.second);
+        }
+    };
+
+    template <typename FirstType, typename SecondType>
+    struct SerializeFunc<pair<FirstType, SecondType>> {
+        void operator () (ofstream& fout, const pair<FirstType, SecondType>& data) const {
+            SerializeFunc<FirstType>()(fout, data.first);
+            SerializeFunc<SecondType>()(fout, data.second);
+        }
+    };
+
+    template <typename T>
+    struct SerializeFunc {
+        void operator () (ofstream& fout, const T& data) const {
+            SerializeFunc<typename T::size_type>()(fout, data.size());
+            for (const auto & d : data) {
+                SerializeFunc<typename T::value_type>()(fout, d);
+            }
+        }
+    };
+
+    template <T>
+    struct DeserializeFunc<vector<T>> {
+        void operator () (ifstream& fin, T& data) const {
+            typename T::size_type size;
+            DeserializeFunc<typename T::size_type>()(fin, size);
+            for (typename T::size_type i = 0; i < size; i++) {
+                typename T::value_type val;
+                DeserializeFunc<typename T::value_type>()(fin, val);
+                data.push_back(val);
+            }
+        }
+    };
+
+    template <typename T>
+    struct DeserializeFunc {
+        void operator () (ifstream& fin, T& data) const {
+            typename T::size_type size;
+            DeserializeFunc<typename T::size_type>()(fin, size);
+            for (typename T::size_type i = 0; i < size; i++) {
+                typename T::value_type val;
+                DeserializeFunc<typename T::value_type>()(fin, val);
+                data.insert(val);
+            }
+        }
+    };
 
     template <typename Validator>
     class SerializerT {
         friend Validator;
-
-        private:
-            vector<size_t> _basicTypes;
-            vector<size_t> _basicTypePtrs;
-
-            template<typename T>
-            void _confirmBasicType(const T& data) const {
-                if (!_typeBelong(data, _basicTypes)) {
-                    throw SerializationOfUnknownType(string("serialization of non-basic type: ") + typeid(data).name());
-                }
-            }
-
-            template<typename T>
-            void _confirmBasicTypePtr(const T& data) const {
-                if (!_typeBelong(data, _basicTypePtrs))
-                    throw SerializationOfUnknownType(string("serialization of non-basic type ptr: ") + typeid(data).name());
-                }
-            }
-
-            template<typename T>
-            bool _typeBelong(const T& data, vector<size_t>& types) {
-                if (find(types.begin(), types.end(), typeid(data).hash_code()) == types.end()) return false;
-                return true;
-            }
-
         public:
-            SerializerT() : 
-                _basicTypes ({
-                    typeid(char).hash_code(), typeid(char16_t).hash_code(),
-                    typeid(char32_t).hash_code(), typeid(wchar_t).hash_code(),
-                    typeid(signed char).hash_code(), typeid(signed short int).hash_code(),
-                    typeid(signed int).hash_code(), typeid(signed long int).hash_code(),
-                    typeid(signed long long int).hash_code(), typeid(unsigned char).hash_code(),
-                    typeid(unsigned short int).hash_code(), typeid(unsigned int).hash_code(),
-                    typeid(unsigned long int).hash_code(), typeid(unsigned long long int).hash_code(),
-                    typeid(float).hash_code(), typeid(double).hash_code(),
-                    typeid(long double) .hash_code(), typeid(const char).hash_code(), 
-                    typeid(const char32_t).hash_code(), typeid(const wchar_t).hash_code(),
-                    typeid(const signed char).hash_code(), typeid(const signed short int).hash_code(),
-                    typeid(const signed int).hash_code(), typeid(const signed long int).hash_code(),
-                    typeid(const signed long long int).hash_code(), typeid(const unsigned char).hash_code(),
-                    typeid(const unsigned short int).hash_code(), typeid(const unsigned int).hash_code(),
-                    typeid(const unsigned long int).hash_code(), typeid(const unsigned long long int).hash_code(),
-                    typeid(const float).hash_code(), typeid(const double).hash_code(),
-                    typeid(const long double) .hash_code(), typeid(const char16_t).hash_code()
-                }), _basicTypePtrs ({
-                    typeid(char *).hash_code(), typeid(char16_t *).hash_code(),
-                    typeid(char32_t *).hash_code(), typeid(wchar_t *).hash_code(),
-                    typeid(signed char *).hash_code(), typeid(signed short int *).hash_code(),
-                    typeid(signed int *).hash_code(), typeid(signed long int *).hash_code(),
-                    typeid(signed long long int *).hash_code(), typeid(unsigned char *).hash_code(),
-                    typeid(unsigned short int *).hash_code(), typeid(unsigned int *).hash_code(),
-                    typeid(unsigned long int *).hash_code(), typeid(unsigned long long int *).hash_code(),
-                    typeid(float *).hash_code(), typeid(double *).hash_code(),
-                    typeid(long double) .hash_code(), typeid(const char *).hash_code(), 
-                    typeid(const char32_t *).hash_code(), typeid(const wchar_t *).hash_code(),
-                    typeid(const signed char *).hash_code(), typeid(const signed short int *).hash_code(),
-                    typeid(const signed int *).hash_code(), typeid(const signed long int *).hash_code(),
-                    typeid(const signed long long int *).hash_code(), typeid(const unsigned char *).hash_code(),
-                    typeid(const unsigned short int *).hash_code(), typeid(const unsigned int *).hash_code(),
-                    typeid(const unsigned long int *).hash_code(), typeid(const unsigned long long int *).hash_code(),
-                    typeid(const float *).hash_code(), typeid(const double *).hash_code(),
-                    typeid(const long double) .hash_code(), typeid(const char16_t *).hash_code()
-                }){}
-            
-            template<typename T>
-            void deserialize(const string& backupFileName, T& data) const {
-                ifstream fin(backupFileName, ios_base::in | ios_base::binary);
-                deserialize(fin, data);
-                fin.close();
+            template <typename T, typename Func = SerializeFunc<T>>
+            void serialize(ofstream& fout, const T& data, const Func& func = Func()) {
+                func(fout, data);
             }
-
-            template<typename T>
-            const SerializerT& deserialize(ifstream& fin, T& data) const {
-                _confirmBasicType(data);
-                fin.read((reinterpret_cast<char*>(&data)), sizeof(data));
-                return *this;
-            }
-
-            template<typename T>
-            const SerializerT& deserialize(ifstream& fin, T* data, size_t len) const {
-                _confirmBasicTypePtr(data);
-                fin.read((reinterpret_cast<char*>(data)), len * sizeof(T));
-                return *this;
-            }
-
-            const SerializerT& deserialize(ifstream& fin, string& data) const {
-                size_t len;
-                deserialize(fin, len);
-
-                data.clear();
-                data.reserve(len);
-
-                char *str = new char [len+1];
-                deserialize(fin, str, len);
-                str[len] = '\0';
-
-                data.append(str);
-                delete [] str;
-                return *this;
-            }
-
-            template<typename T>
-            const SerializerT& deserialize(ifstream& fin, vector<T>& data) const {
-                size_t size;
-                deserialize(fin, size);
-
-                data.clear();
-                data.reserve(size);
-                T elem;
-                for (int i = 0; i < size; i++) {
-                    deserialize(fin, elem);
-                    data.push_back(elem);
-                }
-
-                return *this;
-            }
-
-            template<typename T>
-            const SerializerT& deserialize(ifstream& fin, unordered_set<T>& data) const {
-                size_t size;
-                deserialize(fin, size);
-
-                data.clear();
-                data.reserve(size);
-                T elem;
-                for (int i = 0; i < size; i++) {
-                    deserialize(fin, elem);
-                    data.insert(elem);
-                }
-
-                return *this;
-            }
-
-            template<typename KeyType, typename MappedType>
-            const SerializerT& deserialize(ifstream& fin, unordered_map<KeyType, MappedType>& data) const {
-                size_t size;
-                deserialize(fin, size);
-
-                data.clear();
-                data.reserve(size);
-                KeyType key;
-                MappedType mapped;
-                for (int i = 0; i < size; i++) {
-                    deserialize(fin, key);
-                    deserialize(fin, mapped);
-                    data.insert(make_pair(key, mapped));
-                }
-                return *this;
-            }
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-        public:
-            template<typename T>
-            void serialize(ofstream&& fout, const T&& data) const {
-                if (_typeBelong(data, _basicTypes)) {
-                    serializeBasicType(forward<ofstream>(fout), forward<T>(data));
-                } else {
-                    serialize(fout, data.size());
-                    serialize(fout, data.begin(), data.end());
-                }
-            }
-
-            template <typename T>
-            void serializeBasicType(ofstream& fout, const T& data) {
-                fout.write((reinterpret_cast<const char*>(&data)), sizeof(data));
-            }
-
-            void serialize(ofstream& fout, const string& data) const {
-                serialize(fout, data.length());
-                serialize(fout, data.c_str(), data.length());
-            }
-
-            template<typename T>
-            void serialize(ofstream& fout, const T* data, size_t len) const {
-                _confirmBasicTypePtr(data);
-                fout.write((reinterpret_cast<const char*>(data)), len * sizeof(T));
-            }
-
-            template<typename InputIterator, typename T>
-            void serialize(ofstream& fout, InputIterator first, InputIterator last) const {
-                while (first != last) {
-                    serialize(fout, *first);
-                    ++first;
-                }
-            }
-
     };
 
     using Serializer = SerializerT<int>;

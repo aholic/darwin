@@ -101,12 +101,12 @@ namespace Darwin {
         private:
             void _deserialize(ifstream& fin) {
                 Serializer serializer;
-                serializer.deserialize(fin, _avgWordLength);
-                serializer.deserialize(fin, _wordMap);
+                //serializer.deserialize(fin, _avgWordLength);
+                //serializer.deserialize(fin, _wordMap);
             }
             void _deserialize(const string& backupFileName) {
                 ifstream fin(backupFileName, ios_base::in | ios_base::binary);
-                _deserialize(fin);
+                //_deserialize(fin);
                 fin.close();
             }
 

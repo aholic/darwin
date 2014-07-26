@@ -18,6 +18,13 @@ namespace Darwin {
     template <typename Validator>
     inline bool operator != (const IndexBuilderT<Validator>& i1, const IndexBuilderT<Validator>& i2);
 
+    template <>
+    struct SerializeFunc<InvertedIndexValueType> {
+        void operator () (ofstream& fout, const InvertedIndexValueType& v) const {
+            // what
+        }
+    };
+
     template <typename Validator>
     class IndexBuilderT {
         friend Validator;
@@ -25,32 +32,6 @@ namespace Darwin {
         friend bool operator != <> (const IndexBuilderT& i1, const IndexBuilderT& i2);
 
         public:
-            struct InvertedIndexValueType {
-                DocIdType docId;
-                size_t offset;
-                size_t lineno;
-                InvertedIndexValueType(DocIdType docId, size_t offset, size_t lineno) :
-                    docId(docId), offset(offset), lineno(lineno) {}
-                InvertedIndexValueType(const InvertedIndexValueType& obj) : 
-                    docId(obj.docId), offset(obj.offset), lineno(obj.lineno) {}
-                bool operator == (const InvertedIndexValueType& rhs) const {
-                    if (rhs.docId != docId) return false;
-                    if (rhs.offset != offset) return false;
-                    if (rhs.lineno != lineno) return false;
-                    return true;
-                }
-            };
-
-            struct HashFunc {
-                size_t operator() (const InvertedIndexValueType &val) const {
-                    std::hash<size_t> hasher;
-                    size_t ret = val.docId;
-                    ret ^= hasher(val.offset) + 0x9e3779b9 + (ret << 6) + (ret >> 2);
-                    ret ^= hasher(val.lineno) + 0x9e3779b9 + (ret << 6) + (ret >> 2);
-                    return ret;
-                }
-            };
-
             using InvertedIndexType = unordered_map<WordIdType, unordered_set<InvertedIndexValueType, HashFunc>>;
             using DocumentListType = vector<string>;
 
@@ -127,16 +108,16 @@ namespace Darwin {
 
         private:
             void _deserialize(ifstream& fin) {
-                _tokenizer = Tokenizer(fin);
-                Serializer serializer;
-                serializer.deserialize(fin, _documents);
-                serializer.deserialize(fin, _index);
-                serializer.deserialize(fin, _dataDirectory);
+                //_tokenizer = Tokenizer(fin);
+                //Serializer serializer;
+                //serializer.deserialize(fin, _documents);
+                //serializer.deserialize(fin, _index);
+                //serializer.deserialize(fin, _dataDirectory);
             }
 
             void _deserialize(const string& backupFileName) {
                 ifstream fin(backupFileName, ios_base::in | ios_base::binary);
-                _deserialize(fin);
+                //_deserialize(fin);
                 fin.close();
             }
 
