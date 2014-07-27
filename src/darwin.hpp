@@ -1,13 +1,51 @@
 #ifndef __DARWIN_HPP__
 #define __DARWIN_HPP__
 
-#include <vector>
 #include <iostream>
+#include <vector>
+#include <unordered_map>
+#include "Serializer.hpp"
 namespace Darwin {
     using namespace std;
 
     using WordIdType = size_t;
     using DocIdType = size_t;
+
+    using WordMapType = unordered_map<string, WordIdType>;
+
+    template <>
+    struct SerializeFunc<WordMapType> {
+        void operator () (ofstream& fout, const WordMapType& wordMap) {
+            SerializeFunc<WordMapType::size_type>()(fout, wordMap.size());
+            for (const auto & d : wordMap) {
+                SerializeFunc<WordMapType::value_type>()(fout, d);
+            }
+        }
+    };
+
+    template <>
+    struct SerializeFunc<const WordMapType> {
+        void operator () (ofstream& fout, const WordMapType& wordMap) {
+            SerializeFunc<WordMapType::size_type>()(fout, wordMap.size());
+            for (const auto & d : wordMap) {
+                SerializeFunc<WordMapType::value_type>()(fout, d);
+            }
+        }
+    };
+
+    template <>
+    struct DeserializeFunc<WordMapType> {
+        void operator () (ifstream& fin, WordMapType& data) const {
+            typename WordMapType::size_type size;
+            DeserializeFunc<typename WordMapType::size_type>()(fin, size);
+
+            pair<WordMapType::key_type, WordMapType::mapped_type> val;
+            for (typename WordMapType::size_type i = 0; i < size; i++) {
+                DeserializeFunc<pair<WordMapType::key_type, WordMapType::mapped_type>>()(fin, val);
+                data.insert(val);
+            }
+        }
+    };
 
     struct InvertedIndexValueType {
         DocIdType docId;
@@ -17,11 +55,40 @@ namespace Darwin {
             docId(docId), offset(offset), lineno(lineno) {}
         InvertedIndexValueType(const InvertedIndexValueType& obj) : 
             docId(obj.docId), offset(obj.offset), lineno(obj.lineno) {}
+        InvertedIndexValueType() :
+            docId(0), offset(0), lineno(0) {}
         bool operator == (const InvertedIndexValueType& rhs) const {
             if (rhs.docId != docId) return false;
             if (rhs.offset != offset) return false;
             if (rhs.lineno != lineno) return false;
             return true;
+        }
+    };
+
+    template <>
+    struct SerializeFunc<InvertedIndexValueType> {
+        void operator () (ofstream& fout, const InvertedIndexValueType& v) const {
+            SerializeFunc<DocIdType>()(fout, v.docId);
+            SerializeFunc<size_t>()(fout, v.offset);
+            SerializeFunc<size_t>()(fout, v.lineno);
+        }
+    };
+
+    template <>
+    struct SerializeFunc<const InvertedIndexValueType> {
+        void operator () (ofstream& fout, const InvertedIndexValueType& v) const {
+            SerializeFunc<DocIdType>()(fout, v.docId);
+            SerializeFunc<size_t>()(fout, v.offset);
+            SerializeFunc<size_t>()(fout, v.lineno);
+        }
+    };
+
+    template <>
+    struct DeserializeFunc<InvertedIndexValueType> {
+        void operator () (ifstream& fin, InvertedIndexValueType& v) const {
+            DeserializeFunc<DocIdType>()(fin, v.docId);
+            DeserializeFunc<size_t>()(fin, v.offset);
+            DeserializeFunc<size_t>()(fin, v.lineno);
         }
     };
 

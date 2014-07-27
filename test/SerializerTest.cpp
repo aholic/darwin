@@ -16,87 +16,79 @@ class SerializerValidator {};
 
 TEST(SerializerTest, SerializationOfBasicTypes) {
     Serializer4Test serializer;
-    ofstream fout("dump/dump_basic_types", ios_base::out | ios_base::binary);
-    int i = 10;
-    double d = 10.0;
-    char c = 'd';
-    wchar_t wc = 'd';
-    unsigned short int usi= 10;
-    serializer.serialize(fout, i);
-    serializer.serialize(fout, d);
-    serializer.serialize(fout, c);
-    serializer.serialize(fout, usi);
-    serializer.serialize(fout, wc);
-    serializer.serialize(fout, 10);
+    const string fname= "dump/basic_type_test";
+
+    ofstream fout(fname, ios_base::out | ios_base::binary);
+    vector<char> charVec = {'a', 'b', 'c', 'e', 'f'};
+    for (const auto & c : charVec) {
+        serializer.serialize(fout, c);
+    }
     fout.close();
 
-    ifstream fin("dump/dump_basic_types", ios_base::in | ios_base::binary);
-    int bi;
-    double bd;
+    ifstream fin(fname, ios_base::in | ios_base::binary);
     char bc;
-    wchar_t bwc;
-    unsigned short int busi;
-    int ten;
-    serializer.deserialize(fin, bi);
-    serializer.deserialize(fin, bd);
-    serializer.deserialize(fin, bc);
-    serializer.deserialize(fin, busi);
-    serializer.deserialize(fin, bwc);
-    serializer.deserialize(fin, ten);
+    for (const auto & c : charVec) {
+        serializer.deserialize(fin, bc);
+        ASSERT_EQ(c, bc);
+    }
     fin.close();
 
+    int i = 10;
+    serializer.serialize(fname, i);
+    int bi;
+    serializer.deserialize(fname, bi);
     ASSERT_EQ(i, bi);
-    ASSERT_EQ(d, bd);
-    ASSERT_EQ(c, bc);
-    ASSERT_EQ(usi, busi);
-    ASSERT_EQ(wc, bwc);
-    ASSERT_EQ(ten, 10);
 }
 
-
-TEST(SerializerTest, SerializationOfStl) {
+TEST(SerializerTest, SerializationOfSpecifiedType) {
     Serializer4Test serializer;
-    ofstream fout("dump/dump_stl", ios_base::out | ios_base::binary);
+    const string fname= "dump/specified_type_test";
 
-    string s = "hello world!";
-    vector<int> vi= {10, 20, 30};
-    vector<string> vs = {"hello", "my", "love"};
-    unordered_map<int, string> mis = {{0, "xu"}, {1, "ruochen"}, {2, "cool"}};
-    unordered_map<string, vector<string>> msvs = {
-        {"Beijing", {"010", "North China", "beijing@cstdlib.com"}},
-        {"Guangzhou", {"020", "South China", "guangzhou@cstdlib.com"}},
-        {"Shanghai", {"021", "Southeast China", "shanghai@cstdlib.com"}}
-    };
-    unordered_set<string> ss = {"hello", "my", "love"};
-
-    serializer.serialize(fout, s);
-    serializer.serialize(fout, vi);
-    serializer.serialize(fout, vs);
-    serializer.serialize(fout, mis);
-    serializer.serialize(fout, msvs);
-    serializer.serialize(fout, ss);
-    fout.close();
-
-    ifstream fin("dump/dump_stl", ios_base::in | ios_base::binary);
-    string bs;
+    vector<int> vi = {10, 20, 30};
+    serializer.serialize(fname, vi);
     vector<int> bvi;
-    vector<string> bvs;
-    unordered_map<int, string> bmis;
-    unordered_map<string, vector<string>> bmsvs;
-    unordered_set<string> bss;
-
-    serializer.deserialize(fin, bs);
-    serializer.deserialize(fin, bvi);
-    serializer.deserialize(fin, bvs);
-    serializer.deserialize(fin, bmis);
-    serializer.deserialize(fin, bmsvs);
-    serializer.deserialize(fin, bss);
-    fin.close();
-
-    ASSERT_EQ(s, bs);
+    serializer.deserialize(fname, bvi);
     ASSERT_EQ(vi, bvi);
+
+    vector<string> vs = {"i", "love", "lwj"};
+    serializer.serialize(fname, vs);
+    vector<string> bvs;
+    serializer.deserialize(fname, bvs);
     ASSERT_EQ(vs, bvs);
-    ASSERT_EQ(mis, bmis);
-    ASSERT_EQ(msvs, bmsvs);
-    ASSERT_EQ(ss, bss);
+
+    unordered_map<int, int> mii = {{1, 2}, {2, 3}};
+    serializer.serialize(fname, mii);
+    unordered_map<int, int> bmii;
+    serializer.deserialize(fname, bmii);
+    ASSERT_EQ(mii, bmii);
+
+    unordered_map<string, int> msi = {{"xrc", 22}, {"lwj", 23}};
+    serializer.serialize(fname, msi);
+    unordered_map<string, int> bmsi;
+    serializer.deserialize(fname, bmsi);
+    ASSERT_EQ(msi, bmsi);
+
+    unordered_map<string, string> mss = {{"xrc", "boy"}, {"lwj", "girl"}};
+    serializer.serialize(fname, mss);
+    unordered_map<string, string> bmss;
+    serializer.deserialize(fname, bmss);
+    ASSERT_EQ(mss, bmss);
+
+    unordered_set<int> si = {10, 20, 30};
+    serializer.serialize(fname, si);
+    unordered_set<int> bsi;
+    serializer.deserialize(fname, bsi);
+    ASSERT_EQ(si, bsi);
+
+    InvertedIndexValueType iivt(10, 20, 30);
+    serializer.serialize(fname, iivt);
+    InvertedIndexValueType biivt;
+    serializer.deserialize(fname, biivt);
+    ASSERT_EQ(iivt, biivt);
+
+    unordered_set<InvertedIndexValueType, HashFunc> siivt = {{10, 20, 30}, {20, 30, 40}};
+    serializer.serialize(fname, siivt);
+    unordered_set<InvertedIndexValueType, HashFunc> bsiivt;
+    serializer.deserialize(fname, bsiivt);
+    ASSERT_EQ(siivt, bsiivt);
 }

@@ -18,13 +18,6 @@ namespace Darwin {
     template <typename Validator>
     inline bool operator != (const IndexBuilderT<Validator>& i1, const IndexBuilderT<Validator>& i2);
 
-    template <>
-    struct SerializeFunc<InvertedIndexValueType> {
-        void operator () (ofstream& fout, const InvertedIndexValueType& v) const {
-            // what
-        }
-    };
-
     template <typename Validator>
     class IndexBuilderT {
         friend Validator;
@@ -44,12 +37,6 @@ namespace Darwin {
         public:
             explicit IndexBuilderT(const Tokenizer& tokenizer) : _tokenizer(tokenizer) {}
             explicit IndexBuilderT(Tokenizer&& tokenizer) : _tokenizer(tokenizer) {}
-            explicit IndexBuilderT(const string& backupFileName) {
-                _deserialize(backupFileName);
-            }
-            explicit IndexBuilderT(ifstream& fin) {
-                _deserialize(fin);
-            }
             IndexBuilderT& operator = (IndexBuilderT&& rhs) {
                 _documents = move(rhs._documents);
                 _tokenizer = move(rhs._tokenizer);
@@ -89,38 +76,7 @@ namespace Darwin {
 
                 return result;
             }
-
-            void serialize(const string& dumpFileName) const {
-                ofstream fout(dumpFileName, ios_base::out | ios_base::binary);
-                serialize(fout);
-                fout.close();
-            }
-
-            void serialize(ofstream& fout) const {
-                _tokenizer.serialize(fout);
-                Serializer serializer;
-                serializer.serialize(fout, _documents);
-                serializer.serialize(fout, _index);
-                cout << "_index serialize end" << endl;
-                serializer.serialize(fout, _dataDirectory);
-                cout << "_dataDirectory serialize end" << endl;
-            }
-
         private:
-            void _deserialize(ifstream& fin) {
-                //_tokenizer = Tokenizer(fin);
-                //Serializer serializer;
-                //serializer.deserialize(fin, _documents);
-                //serializer.deserialize(fin, _index);
-                //serializer.deserialize(fin, _dataDirectory);
-            }
-
-            void _deserialize(const string& backupFileName) {
-                ifstream fin(backupFileName, ios_base::in | ios_base::binary);
-                //_deserialize(fin);
-                fin.close();
-            }
-
             string _getLineContent(DocIdType docId, size_t offset) const {
                 auto docName = _dataDirectory+_documents[docId];
                 ifstream doc(docName);

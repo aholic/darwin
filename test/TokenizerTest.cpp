@@ -3,6 +3,7 @@
 #include "CompareOperator.hpp"
 #include "Tokenizer.hpp"
 #include <string>
+#include <fstream>
 #include <vector>
 
 using namespace Darwin;
@@ -12,7 +13,7 @@ class TokenizerValidator;
 using Tokenizer4Test = TokenizerT<TokenizerValidator>;
 class TokenizerValidator {
     public:
-        void validateWordMap(const Tokenizer4Test& tokenizer, const Tokenizer4Test::WordMapType& wordMap) {
+        void validateWordMap(const Tokenizer4Test& tokenizer, const WordMapType& wordMap) {
             ASSERT_EQ(tokenizer._wordMap, wordMap);
         }
 
@@ -45,7 +46,7 @@ TEST(TokenizerTest, TokenizeBySingleChar) {
     ASSERT_EQ(expWordIds, wordIds);
 
     TokenizerValidator validator;
-    Tokenizer4Test::WordMapType wordMap = {
+    WordMapType wordMap = {
         {"I", 1}, {"have", 2}, {"a", 3}, {"dream", 4}, 
         {"very", 5}, {"big", 6}, {"Do", 7}, {"you", 8}
     };
@@ -60,7 +61,7 @@ TEST(TokenizerTest, TokenizeByMultiChar) {
     ASSERT_EQ(expWordIds, wordIds);
 
     TokenizerValidator validator;
-    Tokenizer4Test::WordMapType wordMap = {
+    WordMapType wordMap = {
         {"I", 1}, {"have", 2}, {"a", 3}, {"dream", 4}, 
         {"very", 5}, {"big", 6}, {"Do", 7}, {"you", 8}
     };
@@ -74,12 +75,15 @@ TEST(TokenizerTest, Serialization) {
         "my name is xu ruochen, what is your name?"
     };
 
+    Serializer serializer;
     for (int i = 0; i < sentences.size(); i++ ) {
         Tokenizer4Test tokenizer;
         tokenizer.tokenize(sentences[i], " ,.!?");
 
-        tokenizer.serialize("dump/tokenizer_dump");
-        Tokenizer4Test backupTokenizer("dump/tokenizer_dump");
+        serializer.serialize("dump/tokenizer_dump", tokenizer);
+
+        Tokenizer4Test backupTokenizer;
+        serializer.deserialize("dump/tokenizer_dump", backupTokenizer);
 
         ASSERT_EQ(tokenizer, backupTokenizer);
     }

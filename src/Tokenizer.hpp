@@ -18,16 +18,13 @@ namespace Darwin {
     bool operator == (const TokenizerT<Validator>& t1, const TokenizerT<Validator>& t2);
 
     template <typename Validator>
-    bool operator != (const TokenizerT<Validator>& t1, const TokenizerT<Validator>& t2);
-
-    template <typename Validator>
     class TokenizerT {
         friend Validator;
+        friend SerializeFunc<TokenizerT>;
+        friend DeserializeFunc<TokenizerT>;
         friend bool operator == <> (const TokenizerT& t1, const TokenizerT& t2);
-        friend bool operator != <> (const TokenizerT& t1, const TokenizerT& t2);
 
-        public:
-            using WordMapType = unordered_map<string, WordIdType>;
+        private:
             size_t _avgWordLength = 5;
             WordMapType _wordMap;
         public:
@@ -39,12 +36,6 @@ namespace Darwin {
             TokenizerT(TokenizerT&& tokenizer) : 
                 _avgWordLength(tokenizer._avgWordLength), 
                 _wordMap(move(tokenizer._wordMap)) {}
-            explicit TokenizerT(const string& backupFileName) {
-                _deserialize(backupFileName);
-            }
-            explicit TokenizerT(ifstream& fin) {
-                _deserialize(fin);
-            }
             TokenizerT& operator = (TokenizerT&& rhs) {
                 _wordMap = move(rhs._wordMap);
                 _avgWordLength = move(rhs._avgWordLength);
@@ -87,28 +78,7 @@ namespace Darwin {
                 return ret;
             }
 
-            void serialize(const string& dumpFileName) const {
-                ofstream fout(dumpFileName, ios_base::out | ios_base::binary);
-                serialize(fout);
-                fout.close();
-            }
-
-            void serialize(ofstream& fout) const {
-                Serializer serializer;
-                serializer.serialize(fout, _avgWordLength);
-                serializer.serialize(fout, _wordMap);
-            }
         private:
-            void _deserialize(ifstream& fin) {
-                Serializer serializer;
-                //serializer.deserialize(fin, _avgWordLength);
-                //serializer.deserialize(fin, _wordMap);
-            }
-            void _deserialize(const string& backupFileName) {
-                ifstream fin(backupFileName, ios_base::in | ios_base::binary);
-                //_deserialize(fin);
-                fin.close();
-            }
 
             WordIdType _update(const string& word) {
                 auto wordInfo = _wordMap.find(word);
@@ -121,14 +91,27 @@ namespace Darwin {
             
     };
 
-    template<typename Validator>
-    inline bool operator == (const TokenizerT<Validator>& lhs, const TokenizerT<Validator>& rhs) {
-        return (lhs._avgWordLength == rhs._avgWordLength && lhs._wordMap == rhs._wordMap);
-    }
+    template <typename Validator>
+    struct SerializeFunc<TokenizerT<Validator>> {
+        void operator () (ofstream& fout, const TokenizerT<Validator>& tokenizer) const {
+            SerializeFunc<size_t>()(fout, tokenizer._avgWordLength);
+            SerializeFunc<WordMapType>()(fout, tokenizer._wordMap);
+        }
+    };
+
+    template <typename Validator>
+    struct DeserializeFunc<TokenizerT<Validator>> {
+        void operator () (ifstream& fin, TokenizerT<Validator>& tokenizer) const {
+            DeserializeFunc<size_t>()(fin, tokenizer._avgWordLength);
+            DeserializeFunc<WordMapType>()(fin, tokenizer._wordMap);
+        }
+    };
 
     template<typename Validator>
-    inline bool operator != (const TokenizerT<Validator>& lhs, const TokenizerT<Validator>& rhs) {
-        return (lhs._avgWordLength != rhs._avgWordLength || lhs._wordMap != rhs._wordMap);
+    inline bool operator == (const TokenizerT<Validator>& lhs, const TokenizerT<Validator>& rhs) {
+        if (lhs._avgWordLength != rhs._avgWordLength) return false;
+        if (lhs._wordMap != rhs._wordMap) return false;
+        return true;
     }
 
     using Tokenizer = TokenizerT<int>;
