@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "darwin.hpp"
 #include "Serializer.hpp"
+#include "IndexBuilder.hpp"
 #include <string>
 #include <vector>
 #include <unordered_map>

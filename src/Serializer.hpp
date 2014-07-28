@@ -23,6 +23,50 @@ namespace Darwin {
             }
     };
 
+    template <typename T>
+    struct SerializeFunc;
+    template <typename T>
+    struct SerializeFunc<const T>;
+
+    template <typename T>
+    struct SerializeFunc<T*>;
+
+    template <>
+    struct SerializeFunc<string>;
+
+    template <typename FirstType, typename SecondType>
+    struct SerializeFunc<pair<FirstType, SecondType>>;
+
+    template <typename T, typename Alloc>
+    struct SerializeFunc<vector<T, Alloc>>;
+
+    template <typename Key, typename T, typename Hash, typename Pred, typename Alloc>
+    struct SerializeFunc<unordered_map<Key, T, Hash, Pred, Alloc>>;
+
+    template <typename Key, typename Hash, typename Pred, typename Alloc>
+    struct SerializeFunc<unordered_set<Key, Hash, Pred, Alloc>>;
+
+    template <typename T>
+    struct DeserializeFunc;
+
+    template <typename T>
+    struct DeserializeFunc<T*>;
+
+    template <>
+    struct DeserializeFunc<string>;
+
+    template <typename FirstType, typename SecondType>
+    struct DeserializeFunc<pair<FirstType, SecondType>>;
+
+    template <typename Key, typename Hash, typename Pred, typename Alloc>
+    struct DeserializeFunc<unordered_set<Key, Hash, Pred, Alloc>>;
+
+    template <typename Key, typename T, typename Hash, typename Pred, typename Alloc>
+    struct DeserializeFunc<unordered_map<Key, T, Hash, Pred, Alloc>>;
+
+    template <typename T, typename Alloc>
+    struct DeserializeFunc<vector<T, Alloc>>;
+
     // basic template
     template <typename T>
     struct SerializeFunc {
@@ -35,10 +79,9 @@ namespace Darwin {
     template <typename T>
     struct SerializeFunc<const T> {
         void operator () (ofstream& fout, const T& data) const {
-            fout.write((reinterpret_cast<const char*>(&data)), sizeof(data));
+            SerializeFunc<T>()(fout, data);
         }
     };
-
 
     // basic template for DeserializeFunc
     template <typename T>
@@ -48,29 +91,11 @@ namespace Darwin {
         }
     };
 
-
-    // const T* SerializeFunc
-    template <typename T>
-    struct SerializeFunc<const T*> {
-        void operator () (ofstream& fout, const T* data, size_t length) const {
-            fout.write((reinterpret_cast<const char*>(data)), sizeof(const char) * length);
-        }
-    };
-
     // T* SerializeFunc
     template <typename T>
     struct SerializeFunc<T*> {
         void operator () (ofstream& fout, const T* data, size_t length) const {
             fout.write((reinterpret_cast<const char*>(data)), sizeof(const char) * length);
-        }
-    };
-
-    // const string SerializeFunc
-    template <>
-    struct SerializeFunc<const string> {
-        void operator () (ofstream& fout, const string& data) const {
-            SerializeFunc<typename string::size_type>()(fout, data.length());
-            SerializeFunc<typename string::pointer>()(fout, data.c_str(), data.length());
         }
     };
 
@@ -92,35 +117,9 @@ namespace Darwin {
         }
     };
 
-    template <typename T, typename Alloc>
-    struct SerializeFunc<vector<T, Alloc>>;
-
-    template <typename T, typename Alloc>
-    struct SerializeFunc<const vector<T, Alloc>>;
-
-    template <typename Key, typename T, typename Hash, typename Pred, typename Alloc>
-    struct SerializeFunc<unordered_map<Key, T, Hash, Pred, Alloc>>;
-
-    template <typename Key, typename T, typename Hash, typename Pred, typename Alloc>
-    struct SerializeFunc<const unordered_map<Key, T, Hash, Pred, Alloc>>;
-
     // unordered_set SerializeFunc
     template <typename Key, typename Hash, typename Pred, typename Alloc>
     struct SerializeFunc<unordered_set<Key, Hash, Pred, Alloc>> {
-        void operator () (ofstream& fout, const unordered_set<Key, Hash, Pred, Alloc>& data) const {
-            using size_type = typename unordered_set<Key, Hash, Pred, Alloc>::size_type;
-            using value_type = typename unordered_set<Key, Hash, Pred, Alloc>::value_type;
-
-            SerializeFunc<size_type>()(fout, data.size());
-            for (const auto & d: data) {
-                SerializeFunc<value_type>()(fout, d);
-            }
-        }
-    };
-
-    // const unordered_set SerializeFunc
-    template <typename Key, typename Hash, typename Pred, typename Alloc>
-    struct SerializeFunc<const unordered_set<Key, Hash, Pred, Alloc>> {
         void operator () (ofstream& fout, const unordered_set<Key, Hash, Pred, Alloc>& data) const {
             using size_type = typename unordered_set<Key, Hash, Pred, Alloc>::size_type;
             using value_type = typename unordered_set<Key, Hash, Pred, Alloc>::value_type;
@@ -146,37 +145,9 @@ namespace Darwin {
         }
     };
 
-    // const unordered_map SerializeFunc
-    template <typename Key, typename T, typename Hash, typename Pred, typename Alloc>
-    struct SerializeFunc<const unordered_map<Key, T, Hash, Pred, Alloc>> {
-        void operator () (ofstream& fout, const unordered_map<Key, T, Hash, Pred, Alloc>& data) const {
-            using size_type = typename unordered_map<Key, T, Hash, Pred, Alloc>::size_type;
-            using value_type = typename unordered_map<Key, T, Hash, Pred, Alloc>::value_type;
-
-            SerializeFunc<size_type>()(fout, data.size());
-            for (const auto & d : data) {
-                SerializeFunc<value_type>()(fout, d);
-            }
-        }
-    };
-
     // vector SerializeFunc
     template <typename T, typename Alloc>
     struct SerializeFunc<vector<T, Alloc>> {
-        void operator () (ofstream& fout, const vector<T, Alloc>& data) const {
-            using size_type = typename vector<T, Alloc>::size_type;
-            using value_type = typename vector<T, Alloc>::value_type;
-
-            SerializeFunc<size_type>()(fout, data.size());
-            for (const auto & d : data) {
-                SerializeFunc<value_type>()(fout, d);
-            }
-        }
-    };
-
-    // const vector SerializeFunc
-    template <typename T, typename Alloc>
-    struct SerializeFunc<const vector<T, Alloc>> {
         void operator () (ofstream& fout, const vector<T, Alloc>& data) const {
             using size_type = typename vector<T, Alloc>::size_type;
             using value_type = typename vector<T, Alloc>::value_type;

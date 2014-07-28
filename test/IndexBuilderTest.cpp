@@ -17,10 +17,10 @@ class IndexBuilderValidator {
         void validateDataDirectory(const IndexBuilder4Test& indexBuilder, const string& dataDirectory) {
             ASSERT_EQ(indexBuilder._dataDirectory, dataDirectory);
         }
-        void validateDocList(const IndexBuilder4Test& indexBuilder, const IndexBuilder4Test::DocumentListType& docList) {
+        void validateDocList(const IndexBuilder4Test& indexBuilder, const DocumentListType& docList) {
             ASSERT_EQ(indexBuilder._documents, docList);
         }
-        void validateInvertedIndex(const IndexBuilder4Test& indexBuilder, const IndexBuilder4Test::InvertedIndexType& index) {
+        void validateInvertedIndex(const IndexBuilder4Test& indexBuilder, const InvertedIndexType& index) {
            ASSERT_EQ(indexBuilder._index.size(), index.size()); 
            for (const auto& i : indexBuilder._index) {
                auto info = index.find(i.first);
@@ -59,7 +59,7 @@ TEST(IndexBuilderTest, FillDocList) {
     IndexBuilderValidator validator;
 
     indexBuilder.build("data/documents");
-    IndexBuilder4Test::DocumentListType expDocList = {"doc1", "doc2", "doc3", "doc4"};
+    DocumentListType expDocList = {"doc1", "doc2", "doc3", "doc4"};
     validator.validateDocList(indexBuilder, expDocList);
 }
 
@@ -70,7 +70,7 @@ TEST(IndexBuilderTest, BuildInvertedIndex) {
     indexBuilder.build("data/documents");
 
     // harry : docId = 0, offset = 11, lineno = 1 | docId = 1, offset = 0, lineno = 0
-    IndexBuilder4Test::InvertedIndexType index = {
+    InvertedIndexType index = {
         {indexBuilder.getWordId("shell"), {{0, 0, 0}}} ,
         {indexBuilder.getWordId("code"), {{0, 0, 0}}} ,
         {indexBuilder.getWordId("harry"), {{0, 11, 1}, {1, 0, 0}}} ,
@@ -119,14 +119,13 @@ TEST(IndexBuilderTest, Search) {
 }
 
 TEST(IndexBuilderTest, Serialization) {
-    /*
+    const string fname = "dump/index_builder_dump";
     IndexBuilder4Test indexBuilder((Tokenizer()));
     indexBuilder.build("data/documents");
+    Serializer serializer;
 
-    indexBuilder.serialize("dump/index_builder_dump");
-    cout << "serialize end" << endl;
-    IndexBuilder4Test backupIndexBuilder("dump/index_builder_dump");
-    cout << "deserialize end" << endl;
+    serializer.serialize(fname, indexBuilder);
+    IndexBuilder4Test backupIndexBuilder((Tokenizer()));
+    serializer.deserialize(fname, backupIndexBuilder);
     ASSERT_EQ(indexBuilder, backupIndexBuilder);
-    */
 }

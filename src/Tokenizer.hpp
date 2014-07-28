@@ -10,6 +10,41 @@
 #include "Serializer.hpp"
 
 namespace Darwin {
+    using WordMapType = unordered_map<string, WordIdType>;
+
+    template <>
+    struct SerializeFunc<WordMapType> {
+        void operator () (ofstream& fout, const WordMapType& wordMap) {
+            SerializeFunc<WordMapType::size_type>()(fout, wordMap.size());
+            for (const auto & d : wordMap) {
+                SerializeFunc<WordMapType::value_type>()(fout, d);
+            }
+        }
+    };
+
+    template <>
+    struct SerializeFunc<const WordMapType> {
+        void operator () (ofstream& fout, const WordMapType& wordMap) {
+            SerializeFunc<WordMapType::size_type>()(fout, wordMap.size());
+            for (const auto & d : wordMap) {
+                SerializeFunc<WordMapType::value_type>()(fout, d);
+            }
+        }
+    };
+
+    template <>
+    struct DeserializeFunc<WordMapType> {
+        void operator () (ifstream& fin, WordMapType& data) const {
+            typename WordMapType::size_type size;
+            DeserializeFunc<typename WordMapType::size_type>()(fin, size);
+
+            pair<WordMapType::key_type, WordMapType::mapped_type> val;
+            for (typename WordMapType::size_type i = 0; i < size; i++) {
+                DeserializeFunc<pair<WordMapType::key_type, WordMapType::mapped_type>>()(fin, val);
+                data.insert(val);
+            }
+        }
+    };
 
     template <typename Validator>
     class TokenizerT;
@@ -112,6 +147,11 @@ namespace Darwin {
         if (lhs._avgWordLength != rhs._avgWordLength) return false;
         if (lhs._wordMap != rhs._wordMap) return false;
         return true;
+    }
+
+    template<typename Validator>
+    inline bool operator != (const TokenizerT<Validator>& lhs, const TokenizerT<Validator>& rhs) {
+        return (!(lhs == rhs));
     }
 
     using Tokenizer = TokenizerT<int>;
