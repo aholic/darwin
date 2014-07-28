@@ -23,16 +23,6 @@ namespace Darwin {
     };
 
     template <>
-    struct SerializeFunc<const WordMapType> {
-        void operator () (ofstream& fout, const WordMapType& wordMap) {
-            SerializeFunc<WordMapType::size_type>()(fout, wordMap.size());
-            for (const auto & d : wordMap) {
-                SerializeFunc<WordMapType::value_type>()(fout, d);
-            }
-        }
-    };
-
-    template <>
     struct DeserializeFunc<WordMapType> {
         void operator () (ifstream& fin, WordMapType& data) const {
             typename WordMapType::size_type size;

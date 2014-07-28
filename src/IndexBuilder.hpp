@@ -251,16 +251,6 @@ namespace Darwin {
     };
 
     template <typename Validator>
-    struct SerializeFunc<const IndexBuilderT<Validator>> {
-        void operator () (ofstream& fout, const IndexBuilderT<Validator>& indexBuilder) const {
-            SerializeFunc<Tokenizer>()(fout, indexBuilder._tokenizer);
-            SerializeFunc<string>()(fout, indexBuilder._dataDirectory);
-            SerializeFunc<DocumentListType>()(fout, indexBuilder._documents);
-            SerializeFunc<InvertedIndexType>()(fout, indexBuilder._index);
-        }
-    };
-
-    template <typename Validator>
     struct DeserializeFunc<IndexBuilderT<Validator>> {
         void operator () (ifstream& fin, IndexBuilderT<Validator>& indexBuilder) const {
             DeserializeFunc<Tokenizer>()(fin, indexBuilder._tokenizer);
