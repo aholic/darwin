@@ -80,10 +80,10 @@ TEST(TokenizerTest, Serialization) {
         Tokenizer4Test tokenizer;
         tokenizer.tokenize(sentences[i], " ,.!?");
 
-        serializer.serialize("dump/tokenizer_dump", tokenizer);
+        serializer.serialize("dump/tokenizer", tokenizer);
 
         Tokenizer4Test backupTokenizer;
-        serializer.deserialize("dump/tokenizer_dump", backupTokenizer);
+        serializer.deserialize("dump/tokenizer", backupTokenizer);
 
         ASSERT_EQ(tokenizer, backupTokenizer);
     }

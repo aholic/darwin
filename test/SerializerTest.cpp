@@ -17,7 +17,7 @@ class SerializerValidator {};
 
 TEST(SerializerTest, SerializationOfBasicTypes) {
     Serializer4Test serializer;
-    const string fname= "dump/basic_type_test";
+    const string fname= "dump/basic_type";
 
     ofstream fout(fname, ios_base::out | ios_base::binary);
     vector<char> charVec = {'a', 'b', 'c', 'e', 'f'};
@@ -43,7 +43,7 @@ TEST(SerializerTest, SerializationOfBasicTypes) {
 
 TEST(SerializerTest, SerializationOfSpecifiedType) {
     Serializer4Test serializer;
-    const string fname= "dump/specified_type_test";
+    const string fname= "dump/specified_type";
 
     vector<int> vi = {10, 20, 30};
     serializer.serialize(fname, vi);

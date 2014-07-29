@@ -119,7 +119,7 @@ TEST(IndexBuilderTest, Search) {
 }
 
 TEST(IndexBuilderTest, Serialization) {
-    const string fname = "dump/index_builder_dump";
+    const string fname = "dump/index_builder";
     IndexBuilder4Test indexBuilder((Tokenizer()));
     indexBuilder.build("data/documents");
     Serializer serializer;
